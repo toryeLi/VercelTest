@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vercel 用户管理示例</title>
+    <style>
+      :root {
+        --bg: #f5efe5;
+        --card: rgba(255, 252, 246, 0.92);
+        --line: rgba(79, 56, 38, 0.14);
+        --text: #2b2118;
+        --muted: #6c5a4a;
+        --accent: #bf5a36;
+        --accent-dark: #8f3f23;
+        --success: #1f7a4d;
+        --danger: #a43a2d;
+        --shadow: 0 20px 60px rgba(64, 39, 17, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(208, 120, 78, 0.18), transparent 30%),
+          radial-gradient(circle at right, rgba(215, 178, 89, 0.18), transparent 25%),
+          linear-gradient(135deg, #f7f1e8 0%, #f2e7d7 55%, #efe3d1 100%);
+      }
+
+      .shell {
+        width: min(960px, calc(100% - 32px));
+        margin: 40px auto;
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: var(--card);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(12px);
+      }
+
+      .hero {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 28px;
+      }
+
+      .eyebrow {
+        margin: 0;
+        color: var(--accent);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(30px, 5vw, 52px);
+        line-height: 1;
+      }
+
+      .subtitle {
+        margin: 0;
+        max-width: 640px;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.6;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(280px, 360px) 1fr;
+        gap: 20px;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.72);
+        padding: 20px;
+      }
+
+      .panel h2 {
+        margin: 0 0 16px;
+        font-size: 20px;
+      }
+
+      form {
+        display: grid;
+        gap: 14px;
+      }
+
+      label {
+        display: grid;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      input {
+        width: 100%;
+        padding: 14px 16px;
+        border: 1px solid rgba(79, 56, 38, 0.18);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.96);
+        color: var(--text);
+        font-size: 15px;
+        outline: none;
+      }
+
+      input:focus {
+        border-color: rgba(191, 90, 54, 0.55);
+        box-shadow: 0 0 0 4px rgba(191, 90, 54, 0.12);
+      }
+
+      button {
+        border: 0;
+        border-radius: 14px;
+        padding: 13px 18px;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .primary {
+        background: var(--accent);
+        color: #fff9f3;
+      }
+
+      .primary:hover {
+        background: var(--accent-dark);
+      }
+
+      .danger {
+        padding: 9px 12px;
+        border-radius: 12px;
+        background: rgba(164, 58, 45, 0.12);
+        color: var(--danger);
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .status {
+        min-height: 24px;
+        margin: 0 0 4px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .status.error {
+        color: var(--danger);
+      }
+
+      .status.success {
+        color: var(--success);
+      }
+
+      .users {
+        display: grid;
+        gap: 12px;
+      }
+
+      .empty {
+        margin: 0;
+        padding: 18px;
+        border: 1px dashed rgba(79, 56, 38, 0.2);
+        border-radius: 18px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .user-card {
+        display: grid;
+        gap: 10px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 250, 244, 0.9);
+      }
+
+      .user-head {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .user-name {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .ghost {
+        padding: 9px 12px;
+        border: 1px solid rgba(79, 56, 38, 0.14);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.88);
+        color: var(--text);
+      }
+
+      .user-email,
+      .user-meta {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .hint {
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      @media (max-width: 780px) {
+        .shell {
+          margin: 20px auto;
+          padding: 18px;
+          border-radius: 22px;
+        }
+
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Vercel + Postgres</p>
+        <h1>用户管理最小示例</h1>
+        <p class="subtitle">
+          前端使用原生 HTML / JavaScript，后端使用 Vercel Functions，数据库连接 Vercel Marketplace
+          中集成的 Postgres。支持查看用户列表、添加用户、删除用户。
+        </p>
+      </section>
+
+      <section class="layout">
+        <aside class="panel">
+          <h2>添加用户</h2>
+          <form id="user-form">
+            <label>
+              用户名
+              <input id="name" name="name" type="text" placeholder="例如：张三" required />
+            </label>
+            <label>
+              邮箱
+              <input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="zhangsan@example.com"
+                required
+              />
+            </label>
+            <button class="primary" id="submit-button" type="submit">提交</button>
+          </form>
+          <p class="hint">
+            首次调用接口时会自动建表，无需额外执行 SQL 初始化脚本。
+          </p>
+        </aside>
+
+        <section class="panel">
+          <div class="toolbar">
+            <h2>用户列表</h2>
+            <button class="primary" id="refresh-button" type="button">刷新</button>
+          </div>
+          <p class="status" id="status"></p>
+          <div class="users" id="users"></div>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const form = document.getElementById("user-form");
+      const submitButton = document.getElementById("submit-button");
+      const refreshButton = document.getElementById("refresh-button");
+      const statusNode = document.getElementById("status");
+      const usersNode = document.getElementById("users");
+
+      function setStatus(message, type = "") {
+        statusNode.textContent = message;
+        statusNode.className = `status ${type}`.trim();
+      }
+
+      function formatDate(value) {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+          return value;
+        }
+
+        return date.toLocaleString("zh-CN", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+      }
+
+      function renderUsers(users) {
+        if (!Array.isArray(users) || users.length === 0) {
+          usersNode.innerHTML = '<p class="empty">当前还没有用户，先添加一条记录。</p>';
+          return;
+        }
+
+        usersNode.innerHTML = users
+          .map(
+            (user) => `
+              <article class="user-card">
+                <div class="user-head">
+                  <div>
+                    <h3 class="user-name">${escapeHtml(user.name)}</h3>
+                    <p class="user-email">${escapeHtml(user.email)}</p>
+                  </div>
+                  <div class="actions">
+                    <button
+                      class="ghost"
+                      type="button"
+                      data-edit-id="${user.id}"
+                      data-edit-name="${escapeHtml(user.name)}"
+                      data-edit-email="${escapeHtml(user.email)}"
+                    >
+                      编辑
+                    </button>
+                    <button class="danger" type="button" data-delete-id="${user.id}">删除</button>
+                  </div>
+                </div>
+                <p class="user-meta">创建时间：${formatDate(user.created_at)}</p>
+              </article>
+            `
+          )
+          .join("");
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      async function fetchUsers() {
+        setStatus("正在加载用户列表...");
+
+        try {
+          const response = await fetch("/api/users");
+          const result = await response.json();
+
+          if (!response.ok || !result.success) {
+            throw new Error(result.message || "获取用户列表失败。");
+          }
+
+          renderUsers(result.data);
+          setStatus(`共 ${result.data.length} 个用户。`, "success");
+        } catch (error) {
+          renderUsers([]);
+          setStatus(error.message || "获取用户列表失败。", "error");
+        }
+      }
+
+      async function addUser(payload) {
+        const response = await fetch("/api/users", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || "添加用户失败。");
+        }
+
+        return result.data;
+      }
+
+      async function deleteUser(id) {
+        const response = await fetch(`/api/users/${id}`, {
+          method: "DELETE"
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || "删除用户失败。");
+        }
+      }
+
+      async function updateUser(id, payload) {
+        const response = await fetch(`/api/users/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || "更新用户失败。");
+        }
+
+        return result.data;
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        submitButton.disabled = true;
+        setStatus("正在提交用户...");
+
+        try {
+          const formData = new FormData(form);
+          await addUser({
+            name: formData.get("name"),
+            email: formData.get("email")
+          });
+
+          form.reset();
+          setStatus("用户添加成功。", "success");
+          await fetchUsers();
+        } catch (error) {
+          setStatus(error.message || "添加用户失败。", "error");
+        } finally {
+          submitButton.disabled = false;
+        }
+      });
+
+      refreshButton.addEventListener("click", () => {
+        fetchUsers();
+      });
+
+      usersNode.addEventListener("click", async (event) => {
+        const editTarget = event.target.closest("[data-edit-id]");
+        if (editTarget) {
+          const userId = editTarget.dataset.editId;
+          const currentName = editTarget.dataset.editName || "";
+          const currentEmail = editTarget.dataset.editEmail || "";
+
+          const nextName = window.prompt("请输入新的用户名：", currentName);
+          if (nextName === null) {
+            return;
+          }
+
+          const nextEmail = window.prompt("请输入新的邮箱：", currentEmail);
+          if (nextEmail === null) {
+            return;
+          }
+
+          editTarget.disabled = true;
+          setStatus("正在更新用户...");
+
+          try {
+            await updateUser(userId, {
+              name: nextName,
+              email: nextEmail
+            });
+            setStatus("用户更新成功。", "success");
+            await fetchUsers();
+          } catch (error) {
+            editTarget.disabled = false;
+            setStatus(error.message || "更新用户失败。", "error");
+          }
+
+          return;
+        }
+
+        const target = event.target.closest("[data-delete-id]");
+        if (!target) {
+          return;
+        }
+
+        const { deleteId } = target.dataset;
+        target.disabled = true;
+        setStatus("正在删除用户...");
+
+        try {
+          await deleteUser(deleteId);
+          setStatus("用户删除成功。", "success");
+          await fetchUsers();
+        } catch (error) {
+          target.disabled = false;
+          setStatus(error.message || "删除用户失败。", "error");
+        }
+      });
+
+      fetchUsers();
+    </script>
+  </body>
+</html>
