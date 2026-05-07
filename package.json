@@ -5,13 +5,16 @@
   "type": "module",
   "description": "A minimal Vercel full-stack demo with static frontend, Vercel Functions, and Postgres.",
   "scripts": {
+    "prisma:generate": "prisma generate",
     "dev": "vercel dev",
     "start": "vercel dev"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^0.10.4"
+    "@prisma/client": "^6.16.0",
+    "@prisma/extension-accelerate": "^2.0.0"
   },
   "devDependencies": {
+    "prisma": "^6.16.0",
     "vercel": "^39.2.0"
   }
 }

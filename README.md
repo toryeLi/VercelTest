@@ -35,10 +35,10 @@ npm install
 
 2. 配置环境变量
 
-将 `.env.example` 复制为 `.env.local`，并填入你的 Postgres 连接串：
+将数据库连接串写入项目根目录的 `env.local`。本地也可以额外放一个 `.env.local` 作为覆盖：
 
 ```bash
-POSTGRES_URL=postgres://username:password@hostname/database?sslmode=require
+DATABASE_URL=prisma+postgres://accelerate.prisma-data.net/?api_key=your_api_key_here
 ```
 
 3. 启动本地开发
@@ -54,7 +54,7 @@ npm run dev
 1. 将项目推送到 GitHub
 2. 在 Vercel 中导入该仓库
 3. 在 Vercel Marketplace 添加 Postgres 集成
-   当前新项目建议直接使用 Neon 集成，Vercel 会注入 `POSTGRES_URL` 或兼容连接变量
+   将 `DATABASE_URL` 配成 Prisma 提供的 `prisma+postgres://...` 连接串
 4. 点击 Deploy
 
 ## API 说明

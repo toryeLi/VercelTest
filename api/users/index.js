@@ -1,10 +1,19 @@
-import { ensureUsersTable, getSql } from "../../lib/db.js";
+import { ensureUsersTable, prisma } from "../../lib/db.js";
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
   res.end(JSON.stringify(payload));
+}
+
+function mapUser(user) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    created_at: user.createdAt
+  };
 }
 
 async function readJsonBody(req) {
@@ -42,18 +51,17 @@ export default async function handler(req, res) {
 
   try {
     await ensureUsersTable();
-    const sql = getSql();
 
     if (req.method === "GET") {
-      const rows = await sql`
-        SELECT id, name, email, created_at
-        FROM users
-        ORDER BY id DESC
-      `;
+      const rows = await prisma.user.findMany({
+        orderBy: {
+          id: "desc"
+        }
+      });
 
       return sendJson(res, 200, {
         success: true,
-        data: rows
+        data: rows.map(mapUser)
       });
     }
 
@@ -69,15 +77,16 @@ export default async function handler(req, res) {
         });
       }
 
-      const inserted = await sql`
-        INSERT INTO users (name, email)
-        VALUES (${name}, ${email})
-        RETURNING id, name, email, created_at
-      `;
+      const inserted = await prisma.user.create({
+        data: {
+          name,
+          email
+        }
+      });
 
       return sendJson(res, 201, {
         success: true,
-        data: inserted[0]
+        data: mapUser(inserted)
       });
     }
 
@@ -87,7 +96,7 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     const message =
-      error && error.code === "23505"
+      error?.code === "P2002"
         ? "该邮箱已存在，请使用其他邮箱。"
         : error.message || "服务器内部错误。";
 

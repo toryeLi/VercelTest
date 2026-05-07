@@ -1,10 +1,19 @@
-import { ensureUsersTable, getSql } from "../../lib/db.js";
+import { ensureUsersTable, prisma } from "../../lib/db.js";
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
   res.end(JSON.stringify(payload));
+}
+
+function mapUser(user) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    created_at: user.createdAt
+  };
 }
 
 function getUserId(req) {
@@ -56,7 +65,6 @@ export default async function handler(req, res) {
 
   try {
     await ensureUsersTable();
-    const sql = getSql();
 
     if (req.method === "PUT") {
       const body = await readJsonBody(req);
@@ -70,39 +78,21 @@ export default async function handler(req, res) {
         });
       }
 
-      const updated = await sql`
-        UPDATE users
-        SET name = ${name}, email = ${email}
-        WHERE id = ${userId}
-        RETURNING id, name, email, created_at
-      `;
-
-      if (updated.length === 0) {
-        return sendJson(res, 404, {
-          success: false,
-          message: "用户不存在。"
-        });
-      }
+      const updated = await prisma.user.update({
+        where: { id: userId },
+        data: { name, email }
+      });
 
       return sendJson(res, 200, {
         success: true,
-        data: updated[0]
+        data: mapUser(updated)
       });
     }
 
     if (req.method === "DELETE") {
-      const deleted = await sql`
-        DELETE FROM users
-        WHERE id = ${userId}
-        RETURNING id
-      `;
-
-      if (deleted.length === 0) {
-        return sendJson(res, 404, {
-          success: false,
-          message: "用户不存在。"
-        });
-      }
+      await prisma.user.delete({
+        where: { id: userId }
+      });
 
       return sendJson(res, 200, {
         success: true,
@@ -116,9 +106,11 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     const message =
-      error && error.code === "23505"
-        ? "该邮箱已存在，请使用其他邮箱。"
-        : error.message || "服务器内部错误。";
+      error?.code === "P2025"
+        ? "用户不存在。"
+        : error?.code === "P2002"
+          ? "该邮箱已存在，请使用其他邮箱。"
+          : error.message || "服务器内部错误。";
 
     return sendJson(res, 500, {
       success: false,
